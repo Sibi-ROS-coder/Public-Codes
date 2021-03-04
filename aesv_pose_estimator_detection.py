@@ -3,7 +3,7 @@ import rospy, numpy as np,math,matplotlib.pyplot as plt
 from ParametersInitialization import *
 from EKF_estimation_algorithm import *
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Twist, Pose, Point, Quaternion, PoseStamped
+from geometry_msgs.msg import Twist, Pose, Point, Quaternion, PoseStamped,TwistStamped
 from ackermann_msgs.msg import AckermannDriveStamped,AckermannDrive
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 
@@ -12,7 +12,7 @@ from tf.transformations import quaternion_from_euler, euler_from_quaternion
 class ekf_estimation():
     #### initialization
     def __init__(self):
-        self.VEHICLE = 3 ## 1: Pioneer; 2: ACRONIS; 3: AESV
+        self.VEHICLE = 1 ## 1: Pioneer; 2: ACRONIS; 3: AESV
         self.pub = rospy.Publisher('ekf_estimated_Pose',Odometry)
         if self.VEHICLE == 3:
             rospy.Subscriber('cmd_vel',AckermannDriveStamped, self.aesv_cmd_vel_callback)
@@ -50,7 +50,7 @@ class ekf_estimation():
         self.cumsum = list()
         self.vLidar = np.zeros(3)
         self.ekf = Odometry()
-    
+        self.Alarm = False
     #### velocity call back 
     def aesv_cmd_vel_callback(self,msg):
         self.linear_velocity = msg.drive.speed
@@ -80,7 +80,7 @@ class ekf_estimation():
             print("residual_zero",rospy.get_time() - self.time)
         else:
             self.store_values(msg.pose.position.x,msg.pose.position.y,fresidual[0][0],fresidual[1][0],fresidual[2][0])
-        self.publish_ekf_estimator(msg.header.frame_id,msg.child_frame_id,msg.header.stamp,self.fnewxhat,self.fnewyhat,self.fnewthetahat)
+        self.publish_ekf_estimator(msg.header.frame_id,0,msg.header.stamp,self.fnewxhat,self.fnewyhat,self.fnewthetahat)
         
     #### odometry call back
     def odometry_callback(self,msg):
@@ -198,11 +198,11 @@ class ekf_estimation():
             #### alarm detection
             if self.CUMSUM_S_tk >= self.Threshold_param:
                 print("Alarm")
-                
+                self.Alarm = True
+                print("Alarm",self.Alarm)
             else:
                 print("no Alarm")
-                print("\n")
-                print("\n")
+                print("Alarm",self.Alarm)
 
 
 if __name__ == "__main__":
